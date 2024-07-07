@@ -1,0 +1,3 @@
+config/config.py
+*.swp
+*.pyc
