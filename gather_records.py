@@ -20,28 +20,42 @@ headers = {
 'Content-Type': 'application/json'
 }
 
+# GATHER NGINX SITES
+#
+#
+
+# Dump nginx config to get a definitive list of sites nginx is aware of        
+raw_result = subprocess.check_output([nginx, '-T'], stderr=subprocess.STDOUT).decode() 
+
+print(raw_result)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 domain_name = domain_names[0]
 
 def run_samba_tool(cmd, *args):
     args = list(args) 
-    print(f'args type {type(args)}')
-    print(f'args are: {args}')
-
-
-    #args = ' '.join(args) # Convert list of arguments to a space separated string for samba-tool ingestion
 
     try:
-        logger.info(f'Running: "{samba_tool} dns {cmd} {domain_controller} {args}"')
         # Run samba-tool, redirect stderr to stdout, decode bytes in utf-8 to str
         # Need to APPEND *args to predefined args
         subproc_cmd = [samba_tool, 'dns', cmd, domain_controller] + args
-        print(f'subproc_cmd {subproc_cmd}')
+        logger.info(f'Running: "{subproc_cmd}"')
         raw_result = subprocess.check_output(subproc_cmd, stderr=subprocess.STDOUT).decode() 
         # Split output into array of lines
         lines = raw_result.splitlines()
-        # TODO: this is poor logic
-        # If len(lines) > 1
-        # Assess for delimination
         # Pack
         if len(lines) > 1:
             # Create an empty dict
