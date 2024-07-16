@@ -23,11 +23,20 @@ headers = {
 domain_name = domain_names[0]
 
 def run_samba_tool(cmd, *args):
-    args = ' '.join(args) # Convert list of arguments to a space separated string for samba-tool ingestion
+    args = list(args) 
+    print(f'args type {type(args)}')
+    print(f'args are: {args}')
+
+
+    #args = ' '.join(args) # Convert list of arguments to a space separated string for samba-tool ingestion
+
     try:
-        logger.info(f'Running: {samba_tool} dns {cmd} {domain_controller} {args}')
+        logger.info(f'Running: "{samba_tool} dns {cmd} {domain_controller} {args}"')
         # Run samba-tool, redirect stderr to stdout, decode bytes in utf-8 to str
-        raw_result = subprocess.check_output([samba_tool, 'dns', cmd, domain_controller, args], stderr=subprocess.STDOUT).decode() 
+        # Need to APPEND *args to predefined args
+        subproc_cmd = [samba_tool, 'dns', cmd, domain_controller] + args
+        print(f'subproc_cmd {subproc_cmd}')
+        raw_result = subprocess.check_output(subproc_cmd, stderr=subprocess.STDOUT).decode() 
         # Split output into array of lines
         lines = raw_result.splitlines()
         # TODO: this is poor logic
@@ -64,7 +73,7 @@ if not zone[0]:
 else:
     logger.info(f'Zone {domain_name} already exists in AD.')
 
-
+print(run_samba_tool('query', domain_name, 'dummy', 'A'))
 
 
 # Get records for zone from Cloudflare
@@ -74,7 +83,7 @@ else:
 # If they are in AD, but NOT in Cloudflare, remove them from AD
 
 #Get the zone ID for the domain
-response = requests.get(zones_endpoint, headers=headers, params={'name': domain_name})
+'''response = requests.get(zones_endpoint, headers=headers, params={'name': domain_name})
 if response.status_code == 200:
     zones = response.json().get('result')
     if zones:
@@ -90,10 +99,10 @@ if response.status_code == 200:
         if response.status_code == 200:
             logger.info(f'Public DNS records for {domain_name} retrieved!')
             dns_records = response.json().get('result')
-            #for record in dns_records:
-                #print(f"Type: {record['type']}, Name: {record['name']}, Content: {record['content']}")
+            for record in dns_records:
+                print(f"Type: {record['type']}, Name: {record['name']}, Content: {record['content']}")
                 #run_samba_tool('query', domain_name, record['name'], record['type'])
-            print(run_samba_tool('query', 'smvirtual.biz', 'dummy', 'A'))
+                run_samba_tool('query', 'smvirtual.biz', 'dummy', 'A')
         else:
             logger.error('Failed to retrieve DNS records:', response.json())
 
@@ -101,4 +110,4 @@ if response.status_code == 200:
         logger.warning(f'No zones found for domain: {domain_name}')
 else:
     logger.error('Failed to retrieve zones:', response.json())
-
+'''
