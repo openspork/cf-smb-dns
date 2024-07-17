@@ -6,6 +6,7 @@ import re
 import logging
 
 import validators
+import tldextract
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
@@ -39,7 +40,7 @@ enabled_sites_paths = re.findall(pattern, nginx_config, re.MULTILINE)
 
 # Iterate through the found site config paths to find individual server_name directives
 for enabled_site_path in enabled_sites_paths:
-    print(enabled_site_path)
+    logger.info(f'Site configuration at: {enabled_site_path}')
     # Open each file
     with open(enabled_site_path) as file:
         site_config = file.read()
@@ -48,21 +49,26 @@ for enabled_site_path in enabled_sites_paths:
 
     # if server_names is more than one element, more than one directive line found, so need to process each
     for server_name_definition in server_name_definitions:
-        print(f'working on server name definition: {server_name_definition}')
         # split, in case multiple sames found
         server_names = server_name_definition.split()
-        print(f'server_names: {server_names}')
-
         # Validate if valid domain syntax
         for server_name in server_names:
-            print(f'validating domain: {server_name}')
             if validators.domain(server_name):
                 # Append to FQDNs
                 fqdns.append(server_name)
             else:
-                logger.info(f'Invalid domain: "{server_name}"')
+                logger.info(f'Invalid domain: "{server_name}" ...skipping...')
 
-print(f'Total sites: {fqdns}')
+print(f'Total sites: {' '.join(fqdns)}')
+
+# Process found domains into subdomains, domains, and TLDs
+
+extract = tldextract.TLDExtract(extra_suffixes=['notreal'])
+
+for fqdn in fqdns:
+    print(extract(fqdn))
+
+
 
 domain_name = domain_names[0]
 
