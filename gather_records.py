@@ -62,15 +62,28 @@ for enabled_site_path in enabled_sites_paths:
 print(f'Total sites: {' '.join(fqdns)}')
 
 # Process found domains into subdomains, domains, and TLDs
+# Construct an extractor to separate, include extra suffixes for common on-prem pseudo-TLDs
+domain_extractor = tldextract.TLDExtract(extra_suffixes=extra_tlds)
 
-extract = tldextract.TLDExtract(extra_suffixes=['notreal'])
+# Presume we do not want to input suffixes into AD, and that all zones will be in domain.suffix format
+
+zones = []
 
 for fqdn in fqdns:
-    print(extract(fqdn))
+    fqdn_parts = domain_extractor(fqdn)
+    
+    zone = fqdn_parts.domain + '.' + fqdn_parts.suffix
+    
+    # Don't include duplicates
+    if zone not in zones:
+        zones.append(zone)
 
+
+print(zones)
 
 
 domain_name = domain_names[0]
+
 
 def run_samba_tool(cmd, *args):
     args = list(args) 
