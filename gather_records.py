@@ -78,23 +78,16 @@ for fqdn in fqdns:
     if zone not in zones:
         zones.append(zone)
 
-
-print(zones)
-
-
 # Function to process AD calls
 #
 #
 def run_samba_tool(cmd, *args):
     args = list(args) 
-    print(f'type of args {type(args)}')
-    print(args)
     try:
         # Run samba-tool, redirect stderr to stdout, decode bytes in utf-8 to str
         # Need to APPEND *args to predefined args
         subproc_cmd = [samba_tool, 'dns', cmd, domain_controller] + args
-        print(f'type of subproc_cmd: {type(subproc_cmd)}')
-        logger.info(f'\nRunning: "{subproc_cmd}"\n')
+        logger.info(f'Running: "{' '.join(subproc_cmd)}"')
         raw_result = subprocess.check_output(subproc_cmd, stderr=subprocess.STDOUT).decode() 
         # Split output into array of lines
         lines = raw_result.splitlines()
@@ -112,22 +105,19 @@ def run_samba_tool(cmd, *args):
             return(raw_result)
     except subprocess.CalledProcessError as err:
         # ^ This is a catch-all for a non-zero return code
-        logger.info(f'Error running dns {cmd} with argument(s) {args}:\n{err.output.decode()}')
         # Look at output for samba-tool specific error code (decode bytes to utf-8)
         if 'WERR_DNS_ERROR_ZONE_DOES_NOT_EXIST' in err.output.decode():
             return False, err.output.decode()
-    else:
-        return Exception('Unknown error in AD query')
+        else:
+            return Exception(f'Unknown error in AD query: {err.output.decode()}')
 
-print('first zone')
-print(zones[0])
-for zone in [zones[0]]:
+for zone in zones:
 
     # Check if zone exists in AD by querying for the zone info
     logger.info(f'Checking if zone {zone} exists in AD...')
     zoneinfo = run_samba_tool('zoneinfo', zone)
     if not zoneinfo[0]:
-        logger.info(f'\n\n\n\n\nZone {zone} does not exist in AD, creating it...')
+        logger.info(f'Zone {zone} does not exist in AD, creating it...')
         # The zone does not exist, so create it
         run_samba_tool('zonecreate', zone)
     else:
