@@ -5,11 +5,13 @@ import subprocess
 import re
 import logging
 
+import validators
+
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.DEBUG)
 
-logger.info('Starting Cloudflare > Samba AD DNS record import...')
+logger.info('Starting Nginx/Samba/Cloudflare DNS sync...')
 
 # Cloudflare API endpoint to list zones
 zones_endpoint = 'https://api.cloudflare.com/client/v4/zones'
@@ -25,23 +27,42 @@ headers = {
 #
 
 # Dump nginx config to get a definitive list of sites nginx is aware of        
-raw_result = subprocess.check_output([nginx, '-T'], stderr=subprocess.STDOUT).decode() 
 
-print(raw_result)
+# Create a master array to keep all site FQDNs
+fqdns = []
 
+nginx_config = subprocess.check_output([nginx, '-T'], stderr=subprocess.STDOUT).decode() 
 
+# Patterns captures all configuration files with "enabled" in them
+pattern = r'^# configuration file (.*enabled.*):$'
+enabled_sites_paths = re.findall(pattern, nginx_config, re.MULTILINE)
 
+# Iterate through the found site config paths to find individual server_name directives
+for enabled_site_path in enabled_sites_paths:
+    print(enabled_site_path)
+    # Open each file
+    with open(enabled_site_path) as file:
+        site_config = file.read()
+        pattern = r'^[ \t]*server_name (.*);.*$'
+        server_name_definitions = re.findall(pattern, site_config, re.MULTILINE)
 
+    # if server_names is more than one element, more than one directive line found, so need to process each
+    for server_name_definition in server_name_definitions:
+        print(f'working on server name definition: {server_name_definition}')
+        # split, in case multiple sames found
+        server_names = server_name_definition.split()
+        print(f'server_names: {server_names}')
 
+        # Validate if valid domain syntax
+        for server_name in server_names:
+            print(f'validating domain: {server_name}')
+            if validators.domain(server_name):
+                # Append to FQDNs
+                fqdns.append(server_name)
+            else:
+                logger.info(f'Invalid domain: "{server_name}"')
 
-
-
-
-
-
-
-
-
+print(f'Total sites: {fqdns}')
 
 domain_name = domain_names[0]
 
