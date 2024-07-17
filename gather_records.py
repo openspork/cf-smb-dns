@@ -82,17 +82,19 @@ for fqdn in fqdns:
 print(zones)
 
 
-domain_name = domain_names[0]
-
-
+# Function to process AD calls
+#
+#
 def run_samba_tool(cmd, *args):
     args = list(args) 
-
+    print(f'type of args {type(args)}')
+    print(args)
     try:
         # Run samba-tool, redirect stderr to stdout, decode bytes in utf-8 to str
         # Need to APPEND *args to predefined args
         subproc_cmd = [samba_tool, 'dns', cmd, domain_controller] + args
-        logger.info(f'Running: "{subproc_cmd}"')
+        print(f'type of subproc_cmd: {type(subproc_cmd)}')
+        logger.info(f'\nRunning: "{subproc_cmd}"\n')
         raw_result = subprocess.check_output(subproc_cmd, stderr=subprocess.STDOUT).decode() 
         # Split output into array of lines
         lines = raw_result.splitlines()
@@ -117,17 +119,21 @@ def run_samba_tool(cmd, *args):
     else:
         return Exception('Unknown error in AD query')
 
-# Check if zone exists in AD by querying for the zone info
-logger.info(f'Checking if zone {domain_name} exists in AD...')
-zone = run_samba_tool('zoneinfo', domain_name)
-if not zone[0]:
-    logger.info(f'Zone {domain_name} does not exist in AD, creating it...')
-    # The zone does not exist, so create it
-    run_samba_tool('zonecreate', domain_name)
-else:
-    logger.info(f'Zone {domain_name} already exists in AD.')
+print('first zone')
+print(zones[0])
+for zone in [zones[0]]:
 
-print(run_samba_tool('query', domain_name, 'dummy', 'A'))
+    # Check if zone exists in AD by querying for the zone info
+    logger.info(f'Checking if zone {zone} exists in AD...')
+    zoneinfo = run_samba_tool('zoneinfo', zone)
+    if not zoneinfo[0]:
+        logger.info(f'\n\n\n\n\nZone {zone} does not exist in AD, creating it...')
+        # The zone does not exist, so create it
+        run_samba_tool('zonecreate', zone)
+    else:
+        logger.info(f'Zone {zone} already exists in AD.')
+
+    #print(run_samba_tool('query', zone, 'dummy', 'A'))
 
 
 # Get records for zone from Cloudflare
